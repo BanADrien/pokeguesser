@@ -1,0 +1,30 @@
+MULTIJOUEUR - CE QUE TU DOIS FAIRE TOI UNIQUEMENT
+Date: 2026-04-22
+
+Le code duel est deja ajoute dans le projet (front + serveur).
+Je ne peux pas lancer tes installations/deploiements externes a ta place.
+
+1) Installer les dependances serveur
+- Ouvre un terminal dans server/
+- Lance: npm install
+
+2) Lancer le serveur en local
+- Depuis server/
+- Lance: npm start
+- Ouvre ensuite dans ton navigateur: http://localhost:3000
+
+3) Tester le duel en local
+- Ouvre 2 onglets sur http://localhost:3000
+- Dans l onglet A: Mode duel -> pseudo -> Creer une room
+- Dans l onglet B: pseudo -> code room -> Rejoindre
+- Le host lance avec Lancer duel
+
+4) Pour jouer avec un ami sur internet
+- Deploie le projet (Render ou Railway)
+- Si besoin, force Node 18+ sur la plateforme
+- Partage l URL publique + code room a ton ami
+
+5) Si ca ne marche pas
+- Verifie que l URL utilise bien le serveur Node (pas un simple fichier local)
+- Verifie la page health: /health doit renvoyer {"ok":true}
+- Redemarre le serveur puis recharge les deux onglets

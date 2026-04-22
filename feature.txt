@@ -1,0 +1,14 @@
+fais moi une app qui avec une api qui récupère au moins le splash art et les types des pokémons jusqu'à la 8eme generation de pokemon, et qui en suite va proposer tout les double type du jeu avec un input utilisateur pour qu'il trouve un pokemon de se double type, seulement les doubles type du plus representer au moins représenter, enfaite fais 10 niveau de difficulté sur une partie qui va prendre pour chaque niveau un double type suivant son nombre de représentation
+si la personne trouve pas a ma fin d'un timer de 30sec +10sec a chaque pokemon trouver faudra faire un mode infini et un mode duel
+d'abord concentre toi sur le infini
+donc si la personne trouve pas tout les pokémons de se type sont affichés
+feature possible :
+avec le timer sur 10sec diviser en 3 des indices sont révélés comme le nombre de fois que ce type existe puis les générations ou il y en a, éventuellement les premières lettres en dernier indice
+
+mode duel : 10 point pour gagner, de plus en plus dur, premier qui répond gagne un point
+sur l'input fais la recherche rapide, quand tu commences a taper des propositions s'affiche en menu déroulant, traditionnel
+ne regarde pas l'ordre des types, vol-normal et normal-vol c'est pareil
+
+pour le reste les truc traditionnel : menu, pop up victoire défaite rejouer etc
+
+multijoueur(duel) je sais pas du tout comment faire

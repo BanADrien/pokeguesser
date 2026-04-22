@@ -1,0 +1,470 @@
+:root {
+  --bg-top: #f7f1d4;
+  --bg-mid: #f4c35a;
+  --bg-bottom: #ef6f6c;
+  --card: #fffdf6;
+  --ink: #152238;
+  --accent: #0f766e;
+  --accent-2: #f26419;
+  --danger: #d62839;
+  --ok: #2a9d8f;
+  --shadow: rgba(17, 24, 39, 0.17);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--ink);
+  background: linear-gradient(150deg, var(--bg-top), var(--bg-mid) 45%, var(--bg-bottom));
+  overflow-x: hidden;
+}
+
+.background-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 10% 15%, rgba(255, 255, 255, 0.4), transparent 38%),
+    radial-gradient(circle at 80% 80%, rgba(15, 118, 110, 0.2), transparent 30%),
+    repeating-linear-gradient(35deg, rgba(255, 255, 255, 0.08) 0, rgba(255, 255, 255, 0.08) 2px, transparent 2px, transparent 10px);
+}
+
+.app-shell {
+  width: min(1100px, 94vw);
+  margin: 2rem auto 3rem;
+  position: relative;
+  z-index: 1;
+}
+
+.topbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.topbar label {
+  font-weight: 700;
+}
+
+.topbar select {
+  border: 2px solid rgba(21, 34, 56, 0.2);
+  border-radius: 10px;
+  padding: 0.35rem 0.55rem;
+  font: inherit;
+  background: #fff;
+}
+
+.screen {
+  animation: rise 400ms ease;
+}
+
+.card {
+  background: var(--card);
+  border: 3px solid rgba(21, 34, 56, 0.15);
+  border-radius: 20px;
+  box-shadow: 0 14px 34px var(--shadow);
+}
+
+#menuScreen {
+  padding: 2rem;
+  text-align: center;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Bungee", cursive;
+  letter-spacing: 0.03em;
+  margin: 0 0 0.8rem;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  max-width: 40ch;
+  margin: 0 auto 1.8rem;
+}
+
+.menu-actions {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+button {
+  border: none;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.7rem 1.2rem;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, opacity 150ms ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
+}
+
+button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.primary-btn {
+  background: var(--accent);
+  color: #f6fffd;
+  box-shadow: 0 7px 18px rgba(15, 118, 110, 0.25);
+}
+
+.ghost-btn {
+  background: transparent;
+  border: 2px solid var(--ink);
+  color: var(--ink);
+}
+
+.menu-note {
+  margin-top: 1rem;
+  opacity: 0.8;
+}
+
+.hidden {
+  display: none !important;
+}
+
+#gameScreen {
+  display: grid;
+  gap: 1rem;
+}
+
+#duelScreen {
+  display: grid;
+  gap: 1rem;
+}
+
+.hud {
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+  text-align: center;
+}
+
+.label {
+  display: block;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  opacity: 0.7;
+}
+
+.value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.timer {
+  color: var(--danger);
+}
+
+.challenge,
+.progress-zone {
+  padding: 1rem 1.1rem 1.2rem;
+}
+
+.challenge {
+  display: grid;
+  gap: 1rem;
+}
+
+.duel-layout {
+  align-items: start;
+}
+
+.duel-setup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.duel-setup input {
+  width: min(260px, 100%);
+}
+
+.duel-round {
+  padding: 0.9rem;
+}
+
+.duel-prejoin {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.duel-lobby {
+  padding: 0.9rem;
+  border-style: dashed;
+}
+
+.duel-lobby-room {
+  margin: 0 0 0.6rem;
+  font-size: 1.02rem;
+}
+
+.duel-players-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.8rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.duel-player-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(15, 118, 110, 0.08);
+  border: 1px solid rgba(15, 118, 110, 0.28);
+  border-radius: 10px;
+  padding: 0.45rem 0.6rem;
+}
+
+.duel-player-tag {
+  font-weight: 700;
+}
+
+.duel-player-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.45);
+}
+
+.duel-player-host {
+  background: #0f766e;
+}
+
+.duel-player-ready {
+  background: #2a9d8f;
+}
+
+.duel-player-wait {
+  background: #d62839;
+}
+
+.types-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  padding: 0.28rem 0.62rem;
+  border-radius: 8px;
+  border: 2px solid rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.03em;
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000;
+}
+
+.type-normal { background: #a8a77a; }
+.type-fire { background: #ee8130; }
+.type-water { background: #6390f0; }
+.type-electric { background: #f7d02c; }
+.type-grass { background: #7ac74c; }
+.type-ice { background: #96d9d6; }
+.type-fighting { background: #c22e28; }
+.type-poison { background: #a33ea1; }
+.type-ground { background: #e2bf65; }
+.type-flying { background: #a98ff3; }
+.type-psychic { background: #f95587; }
+.type-bug { background: #a6b91a; }
+.type-rock { background: #b6a136; }
+.type-ghost { background: #735797; }
+.type-dragon { background: #6f35fc; }
+.type-dark { background: #705746; }
+.type-steel { background: #b7b7ce; }
+.type-fairy { background: #d685ad; }
+
+.type-unknown,
+.type-shadow { background: #6b7280; }
+
+.input-wrap {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.input-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.input-wrap label {
+  font-weight: 700;
+}
+
+.autocomplete-shell {
+  position: relative;
+}
+
+input {
+  width: 100%;
+  border: 2px solid rgba(21, 34, 56, 0.2);
+  border-radius: 12px;
+  padding: 0.8rem;
+  font: inherit;
+}
+
+.suggestions {
+  list-style: none;
+  padding: 0.3rem;
+  margin: 0.4rem 0 0;
+  position: absolute;
+  width: 100%;
+  z-index: 10;
+  max-height: 220px;
+  overflow: auto;
+  background: var(--card);
+  border: 2px solid rgba(21, 34, 56, 0.2);
+  border-radius: 10px;
+}
+
+.suggestions li {
+  padding: 0.5rem;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.suggestions li:hover,
+.suggestions li.active {
+  background: rgba(15, 118, 110, 0.12);
+}
+
+.hint-zone ul,
+.chips-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.hint-zone li {
+  margin: 0.3rem 0;
+}
+
+.chips-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.chips-list li {
+  background: rgba(42, 157, 143, 0.15);
+  color: #15423b;
+  border: 1px solid rgba(42, 157, 143, 0.35);
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-weight: 500;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 16, 24, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.modal-card {
+  width: min(960px, 96vw);
+  max-height: 90vh;
+  overflow: auto;
+  background: var(--card);
+  border-radius: 20px;
+  border: 3px solid rgba(21, 34, 56, 0.15);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.24);
+  padding: 1rem;
+}
+
+.reveal-zone {
+  margin: 1rem 0;
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.pokemon-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid rgba(21, 34, 56, 0.14);
+  padding: 0.5rem;
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.pokemon-card img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
+
+.pokemon-name {
+  margin: 0;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.pokemon-types {
+  margin: 0.2rem 0 0;
+  font-size: 0.88rem;
+  opacity: 1;
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    margin-top: 1rem;
+  }
+
+  .topbar {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .hud {
+    grid-template-columns: 1fr;
+  }
+}

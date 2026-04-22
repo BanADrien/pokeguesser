@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PokeGuesser - Double Types</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bungee:wght@400&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="background-layer" aria-hidden="true"></div>
+
+  <main class="app-shell">
+    <header class="topbar card">
+      <label for="languageSelect">Langue des noms:</label>
+      <select id="languageSelect" aria-label="Choix de la langue">
+        <option value="fr">Francais</option>
+        <option value="en">English</option>
+      </select>
+    </header>
+
+    <section id="menuScreen" class="card screen active">
+      <h1>PokeGuesser</h1>
+      <p class="subtitle">Trouve les Pokemon par double type, de facile a brutal.</p>
+      <div class="menu-actions">
+        <button id="startInfiniteBtn" class="primary-btn">Mode infini</button>
+        <button id="duelBtn" class="ghost-btn">Mode duel</button>
+      </div>
+      <p class="menu-note">Regles: 30 secondes au debut, +10 secondes par bonne reponse.</p>
+    </section>
+
+    <section id="gameScreen" class="screen hidden">
+      <header class="hud card">
+        <div><span class="label">Score</span><span id="scoreValue" class="value">0</span></div>
+        <div><span class="label">Niveau</span><span id="levelValue" class="value">1 / 10</span></div>
+        <div><span class="label">Timer</span><span id="timerValue" class="value timer">30</span></div>
+      </header>
+
+      <section class="card challenge">
+        <h2 id="challengeTitle">Chargement...</h2>
+        <div id="challengeTypes" class="types-row"></div>
+        <p id="challengeSubtitle">Preparation des donnees Pokemon...</p>
+
+        <div class="input-wrap">
+          <label for="pokemonInput">Entre un Pokemon de ce double type</label>
+          <div class="autocomplete-shell">
+            <input id="pokemonInput" type="text" autocomplete="off" placeholder="Ex: charizard" disabled />
+            <ul id="suggestions" class="suggestions hidden"></ul>
+          </div>
+          <div class="input-actions">
+            <button id="submitGuessBtn" class="primary-btn" disabled>Valider</button>
+            <button id="skipBtn" class="ghost-btn" disabled>Passer (-10s)</button>
+          </div>
+        </div>
+
+        <div class="hint-zone">
+          <h3>Indices</h3>
+          <ul id="hintsList"></ul>
+        </div>
+      </section>
+
+      <section class="card progress-zone">
+        <h3>Trouves</h3>
+        <ul id="foundList" class="chips-list"></ul>
+
+        <h3>Restants</h3>
+        <p id="remainingCount">-</p>
+      </section>
+    </section>
+
+    <section id="duelScreen" class="screen hidden">
+      <header class="hud card">
+        <div><span class="label">Room</span><span id="duelRoomValue" class="value">-</span></div>
+        <div><span class="label">Score toi</span><span id="duelMyScore" class="value">0</span></div>
+        <div><span class="label">Score rival</span><span id="duelOpponentScore" class="value">0</span></div>
+      </header>
+
+      <section class="card challenge duel-layout">
+        <h2>Mode duel</h2>
+        <p id="duelStatus">Connecte-toi a une room pour commencer.</p>
+
+        <div id="duelPreJoinBox" class="duel-prejoin">
+          <div class="duel-setup">
+            <input id="duelPlayerName" type="text" maxlength="24" placeholder="Ton pseudo" />
+            <button id="duelCreateBtn" class="primary-btn">Creer une room</button>
+          </div>
+
+          <div class="duel-setup">
+            <input id="duelRoomInput" type="text" maxlength="6" placeholder="Code room" />
+            <button id="duelJoinBtn" class="ghost-btn">Rejoindre</button>
+            <button id="duelBackBtn" class="ghost-btn">Menu</button>
+          </div>
+        </div>
+
+        <div id="duelLobbyBox" class="duel-lobby card hidden">
+          <h3>Lobby</h3>
+          <p class="duel-lobby-room">Code: <strong id="duelLobbyCode">-</strong></p>
+          <ul id="duelPlayersList" class="duel-players-list"></ul>
+          <div class="duel-setup">
+            <button id="duelStartBtn" class="primary-btn" disabled>Lancer duel</button>
+            <button id="duelLeaveBtn" class="ghost-btn">Quitter la room</button>
+          </div>
+        </div>
+
+        <div class="duel-round card hidden" id="duelRoundBox">
+          <h3 id="duelRoundTitle">Double type</h3>
+          <div id="duelTypes" class="types-row"></div>
+          <p id="duelRoundMeta">Timer: -</p>
+
+          <div class="autocomplete-shell">
+            <input id="duelInput" type="text" autocomplete="off" placeholder="Nom Pokemon" disabled />
+            <ul id="duelSuggestions" class="suggestions hidden"></ul>
+          </div>
+          <div class="input-actions">
+            <button id="duelSendBtn" class="primary-btn" disabled>Repondre</button>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="resultModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+    <div class="modal-card">
+      <h2 id="resultTitle">Fin de partie</h2>
+      <p id="resultText"></p>
+      <div id="revealZone" class="reveal-zone"></div>
+      <div class="menu-actions">
+        <button id="replayBtn" class="primary-btn">Rejouer</button>
+        <button id="backMenuBtn" class="ghost-btn">Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <template id="pokemonCardTemplate">
+    <article class="pokemon-card">
+      <img alt="Artwork Pokemon" loading="lazy" />
+      <div class="pokemon-meta">
+        <p class="pokemon-name"></p>
+        <div class="pokemon-types types-row"></div>
+      </div>
+    </article>
+  </template>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js" defer></script>
+</body>
+</html>
