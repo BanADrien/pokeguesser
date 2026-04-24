@@ -11,8 +11,10 @@ const PORT = process.env.PORT || 3000;
 const TARGET_SCORE = 10;
 const ROUND_DURATION_MS = 15000;
 const MAX_GEN8_ID = 905;
+const WHO_GRID_SIZE = 30;
 
-const rooms = new Map();
+const duelRooms = new Map();
+const whoRooms = new Map();
 const duelData = {
   loaded: false,
   loadingPromise: null,
@@ -44,7 +46,7 @@ io.on("connection", (socket) => {
         timeout: null,
       };
 
-      rooms.set(roomCode, room);
+      duelRooms.set(roomCode, room);
       socket.join(roomCode);
 
       socket.emit("duel:roomCreated", {
@@ -61,7 +63,7 @@ io.on("connection", (socket) => {
     try {
       await ensureDataLoaded();
       const roomCode = String(payload.roomCode || "").trim().toUpperCase();
-      const room = rooms.get(roomCode);
+      const room = duelRooms.get(roomCode);
 
       if (!room) {
         socket.emit("duel:error", { message: "Room introuvable." });
@@ -189,8 +191,214 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("who:createRoom", async (payload = {}) => {
+    try {
+      await ensureDataLoaded();
+      const roomCode = createRoomCode();
+      const player = createPlayer(socket, payload.playerName, true);
+      const room = {
+        roomCode,
+        players: [player],
+        started: false,
+        phase: "lobby",
+        board: [],
+        boardNameIndex: new Map(),
+        selections: {},
+        targets: {},
+        winnerId: null,
+      };
+
+      whoRooms.set(roomCode, room);
+      socket.join(roomCode);
+
+      socket.emit("who:roomCreated", {
+        roomCode,
+        playerId: player.id,
+        state: serializeWhoRoom(room),
+      });
+    } catch {
+      socket.emit("who:error", { message: "Echec creation room." });
+    }
+  });
+
+  socket.on("who:joinRoom", async (payload = {}) => {
+    try {
+      await ensureDataLoaded();
+      const roomCode = String(payload.roomCode || "").trim().toUpperCase();
+      const room = whoRooms.get(roomCode);
+
+      if (!room) {
+        socket.emit("who:error", { message: "Room introuvable." });
+        return;
+      }
+
+      if (room.players.length >= 2) {
+        socket.emit("who:error", { message: "Room pleine." });
+        return;
+      }
+
+      const player = createPlayer(socket, payload.playerName, false);
+      room.players.push(player);
+      socket.join(roomCode);
+
+      socket.emit("who:joined", {
+        roomCode,
+        playerId: player.id,
+        isHost: false,
+        state: serializeWhoRoom(room),
+      });
+
+      io.to(roomCode).emit("who:state", { state: serializeWhoRoom(room) });
+    } catch {
+      socket.emit("who:error", { message: "Echec join room." });
+    }
+  });
+
+  socket.on("who:start", async (payload = {}) => {
+    try {
+      await ensureDataLoaded();
+      const room = getWhoRoomFromPayload(payload);
+      if (!room) {
+        socket.emit("who:error", { message: "Room introuvable." });
+        return;
+      }
+
+      const me = room.players.find((p) => p.id === socket.id);
+      if (!me || !me.isHost) {
+        socket.emit("who:error", { message: "Seul le host peut lancer." });
+        return;
+      }
+
+      if (room.players.length !== 2) {
+        socket.emit("who:error", { message: "Il faut 2 joueurs." });
+        return;
+      }
+
+      room.started = true;
+      room.phase = "pick";
+      room.winnerId = null;
+      room.board = pickRandomPokemon(duelData.allPokemon, WHO_GRID_SIZE).map((pokemon) => ({
+        id: pokemon.id,
+        name: pokemon.name,
+        displayNameEn: pokemon.displayNameEn,
+        displayNameFr: pokemon.displayNameFr,
+        artwork: pokemon.artwork,
+      }));
+      room.boardNameIndex = buildBoardNameIndex(room.board);
+      room.selections = {};
+      room.targets = {};
+
+      io.to(room.roomCode).emit("who:state", { state: serializeWhoRoom(room) });
+      io.to(room.roomCode).emit("who:phase", {
+        phase: room.phase,
+        message: "Choisis le Pokemon que ton adversaire devra deviner.",
+      });
+    } catch {
+      socket.emit("who:error", { message: "Impossible de lancer la partie." });
+    }
+  });
+
+  socket.on("who:selectTarget", async (payload = {}) => {
+    try {
+      await ensureDataLoaded();
+      const room = getWhoRoomFromPayload(payload);
+      if (!room || !room.started || room.phase !== "pick") {
+        return;
+      }
+
+      const me = room.players.find((p) => p.id === socket.id);
+      if (!me) {
+        return;
+      }
+
+      const targetId = resolveBoardPokemonId(room, payload);
+      if (!targetId) {
+        socket.emit("who:error", { message: "Pokemon invalide pour cette grille." });
+        return;
+      }
+
+      room.selections[me.id] = targetId;
+
+      const allSelected = room.players.every((player) => Boolean(room.selections[player.id]));
+      if (allSelected) {
+        for (const player of room.players) {
+          const opponent = room.players.find((p) => p.id !== player.id);
+          room.targets[player.id] = opponent ? room.selections[opponent.id] : null;
+        }
+        room.phase = "play";
+        io.to(room.roomCode).emit("who:phase", {
+          phase: room.phase,
+          message: "Partie en cours. Clique sur Guess pour tenter ta chance.",
+        });
+      }
+
+      io.to(room.roomCode).emit("who:state", { state: serializeWhoRoom(room) });
+    } catch {
+      socket.emit("who:error", { message: "Erreur selection Pokemon." });
+    }
+  });
+
+  socket.on("who:guess", async (payload = {}) => {
+    try {
+      await ensureDataLoaded();
+      const room = getWhoRoomFromPayload(payload);
+      if (!room || !room.started || room.phase !== "play" || room.winnerId) {
+        return;
+      }
+
+      const me = room.players.find((p) => p.id === socket.id);
+      if (!me) {
+        return;
+      }
+
+      const guessedId = resolveBoardPokemonId(room, payload);
+      if (!guessedId) {
+        socket.emit("who:error", { message: "Pokemon invalide pour cette grille." });
+        return;
+      }
+
+      const myTargetId = room.targets[me.id];
+      const opponent = room.players.find((p) => p.id !== me.id);
+      if (!myTargetId || !opponent) {
+        return;
+      }
+
+      const didWin = guessedId === myTargetId;
+      const winner = didWin ? me : opponent;
+      const loser = didWin ? opponent : me;
+
+      room.winnerId = winner.id;
+      room.started = false;
+      room.phase = "ended";
+
+      const guessedPokemon = room.board.find((p) => p.id === guessedId);
+      const correctPokemon = room.board.find((p) => p.id === myTargetId);
+      const secretsByPlayer = {};
+      for (const player of room.players) {
+        const selectedId = room.selections[player.id];
+        secretsByPlayer[player.id] = room.board.find((p) => p.id === selectedId) || null;
+      }
+
+      io.to(room.roomCode).emit("who:gameOver", {
+        winnerId: winner.id,
+        loserId: loser.id,
+        guessedPokemon,
+        correctPokemon,
+        playerOrder: room.players.map((player) => player.id),
+        secretsByPlayer,
+        message: didWin
+          ? `${me.name} a trouve le bon Pokemon et gagne la partie.`
+          : `${me.name} a fait un mauvais guess et perd instantanement.`,
+      });
+
+      io.to(room.roomCode).emit("who:state", { state: serializeWhoRoom(room) });
+    } catch {
+      socket.emit("who:error", { message: "Erreur guess final." });
+    }
+  });
+
   socket.on("disconnect", () => {
-    for (const room of rooms.values()) {
+    for (const room of duelRooms.values()) {
       const idx = room.players.findIndex((p) => p.id === socket.id);
       if (idx === -1) {
         continue;
@@ -204,7 +412,7 @@ io.on("connection", (socket) => {
       room.currentRound = null;
 
       if (!room.players.length) {
-        rooms.delete(room.roomCode);
+        duelRooms.delete(room.roomCode);
         continue;
       }
 
@@ -212,6 +420,29 @@ io.on("connection", (socket) => {
       room.players[0].isHost = true;
       io.to(room.roomCode).emit("duel:state", { state: serializeRoom(room) });
       io.to(room.roomCode).emit("duel:error", { message: "Adversaire deconnecte." });
+    }
+
+    for (const room of whoRooms.values()) {
+      const idx = room.players.findIndex((p) => p.id === socket.id);
+      if (idx === -1) {
+        continue;
+      }
+
+      room.players.splice(idx, 1);
+      room.started = false;
+      room.phase = "lobby";
+      room.selections = {};
+      room.targets = {};
+      room.winnerId = null;
+
+      if (!room.players.length) {
+        whoRooms.delete(room.roomCode);
+        continue;
+      }
+
+      room.players[0].isHost = true;
+      io.to(room.roomCode).emit("who:state", { state: serializeWhoRoom(room) });
+      io.to(room.roomCode).emit("who:error", { message: "Adversaire deconnecte." });
     }
   });
 });
@@ -254,7 +485,7 @@ async function loadDuelData() {
         }
 
         const p = await response.json();
-        if (p.id > MAX_GEN8_ID || !Array.isArray(p.types) || p.types.length !== 2) {
+        if (p.id > MAX_GEN8_ID || !Array.isArray(p.types) || p.types.length < 1) {
           return null;
         }
 
@@ -264,7 +495,8 @@ async function loadDuelData() {
           name: p.name,
           displayNameEn: toDisplayName(p.name),
           types: typeNames,
-          comboKey: buildComboKey(typeNames[0], typeNames[1]),
+          comboKey: typeNames.length === 2 ? buildComboKey(typeNames[0], typeNames[1]) : "",
+          artwork: p.sprites?.other?.["official-artwork"]?.front_default || p.sprites?.front_default || "",
         };
       })
     );
@@ -299,8 +531,10 @@ async function loadDuelData() {
     displayNameFr: byIdFrench.get(p.id) || p.displayNameEn,
   }));
 
+  const duelCandidates = localized.filter((pokemon) => pokemon.types.length === 2);
+
   const byCombo = new Map();
-  for (const pokemon of localized) {
+  for (const pokemon of duelCandidates) {
     if (!byCombo.has(pokemon.comboKey)) {
       byCombo.set(pokemon.comboKey, []);
     }
@@ -389,7 +623,7 @@ function createRoomCode() {
   let code = "";
   do {
     code = Array.from({ length: 6 }, () => letters[Math.floor(Math.random() * letters.length)]).join("");
-  } while (rooms.has(code));
+  } while (duelRooms.has(code) || whoRooms.has(code));
   return code;
 }
 
@@ -404,7 +638,12 @@ function createPlayer(socket, name, isHost) {
 
 function getRoomFromPayload(payload) {
   const roomCode = String(payload.roomCode || "").trim().toUpperCase();
-  return rooms.get(roomCode);
+  return duelRooms.get(roomCode);
+}
+
+function getWhoRoomFromPayload(payload) {
+  const roomCode = String(payload.roomCode || "").trim().toUpperCase();
+  return whoRooms.get(roomCode);
 }
 
 function serializeRoom(room) {
@@ -417,6 +656,23 @@ function serializeRoom(room) {
   };
 }
 
+function serializeWhoRoom(room) {
+  const selectedBy = {};
+  for (const player of room.players) {
+    selectedBy[player.id] = Boolean(room.selections[player.id]);
+  }
+
+  return {
+    roomCode: room.roomCode,
+    started: room.started,
+    phase: room.phase,
+    winnerId: room.winnerId,
+    players: room.players.map((p) => ({ id: p.id, name: p.name, isHost: p.isHost })),
+    selectedBy,
+    board: room.board,
+  };
+}
+
 function getOtherScore(room, playerId) {
   const other = room.players.find((p) => p.id !== playerId);
   return other ? room.scores[other.id] || 0 : 0;
@@ -424,6 +680,41 @@ function getOtherScore(room, playerId) {
 
 function buildComboKey(typeA, typeB) {
   return [typeA, typeB].sort().join("|");
+}
+
+function pickRandomPokemon(pool, amount) {
+  const list = [...pool];
+  for (let i = list.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list.slice(0, Math.min(amount, list.length));
+}
+
+function buildBoardNameIndex(board) {
+  const index = new Map();
+  for (const pokemon of board) {
+    const aliases = [pokemon.name, pokemon.displayNameEn, pokemon.displayNameFr];
+    for (const alias of aliases) {
+      index.set(normalize(alias), pokemon.id);
+    }
+  }
+  return index;
+}
+
+function resolveBoardPokemonId(room, payload) {
+  const numericId = Number(payload.pokemonId);
+  if (Number.isInteger(numericId) && room.board.some((p) => p.id === numericId)) {
+    return numericId;
+  }
+
+  const guess = normalize(payload.guess || payload.name || "");
+  if (!guess) {
+    return null;
+  }
+
+  const resolved = room.boardNameIndex.get(guess);
+  return resolved || null;
 }
 
 function normalize(value) {

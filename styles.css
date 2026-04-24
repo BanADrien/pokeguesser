@@ -150,6 +150,11 @@ button:disabled {
   gap: 1rem;
 }
 
+#whoScreen {
+  display: grid;
+  gap: 1rem;
+}
+
 .hud {
   padding: 1rem;
   display: grid;
@@ -408,6 +413,10 @@ input {
   padding: 1rem;
 }
 
+.who-result-text {
+  white-space: pre-line;
+}
+
 .reveal-zone {
   margin: 1rem 0;
   display: grid;
@@ -443,6 +452,75 @@ input {
   opacity: 1;
 }
 
+.who-grid-wrap {
+  padding: 1rem;
+}
+
+.who-grid-note {
+  margin-top: 0;
+  opacity: 0.82;
+}
+
+.who-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.who-cell {
+  position: relative;
+  border: 2px solid rgba(21, 34, 56, 0.2);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.45rem;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+}
+
+.who-cell:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.15);
+}
+
+.who-cell img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+
+.who-cell-name {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.who-cell.crossed {
+  opacity: 0.45;
+}
+
+.who-cell.crossed::after {
+  content: "";
+  position: absolute;
+  left: 10%;
+  top: 50%;
+  width: 80%;
+  height: 5px;
+  border-radius: 999px;
+  background: #d62839;
+  transform: rotate(-25deg);
+}
+
+.who-cell.pick-selected {
+  border-color: #2a9d8f;
+  box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.28);
+}
+
+.who-cell.guess-selected {
+  border-color: #f26419;
+  box-shadow: 0 0 0 3px rgba(242, 100, 25, 0.28);
+}
+
 @keyframes rise {
   from {
     transform: translateY(8px);
@@ -467,4 +545,5 @@ input {
   .hud {
     grid-template-columns: 1fr;
   }
+
 }

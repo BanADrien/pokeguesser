@@ -7,9 +7,11 @@ const dom = {
   menuScreen: document.getElementById("menuScreen"),
   gameScreen: document.getElementById("gameScreen"),
   duelScreen: document.getElementById("duelScreen"),
+  whoScreen: document.getElementById("whoScreen"),
   languageSelect: document.getElementById("languageSelect"),
   startInfiniteBtn: document.getElementById("startInfiniteBtn"),
   duelBtn: document.getElementById("duelBtn"),
+  whoBtn: document.getElementById("whoBtn"),
   scoreValue: document.getElementById("scoreValue"),
   levelValue: document.getElementById("levelValue"),
   timerValue: document.getElementById("timerValue"),
@@ -29,6 +31,11 @@ const dom = {
   revealZone: document.getElementById("revealZone"),
   replayBtn: document.getElementById("replayBtn"),
   backMenuBtn: document.getElementById("backMenuBtn"),
+  whoResultModal: document.getElementById("whoResultModal"),
+  whoResultTitle: document.getElementById("whoResultTitle"),
+  whoResultText: document.getElementById("whoResultText"),
+  whoResultCloseBtn: document.getElementById("whoResultCloseBtn"),
+  whoResultMenuBtn: document.getElementById("whoResultMenuBtn"),
   pokemonCardTemplate: document.getElementById("pokemonCardTemplate"),
   duelRoomValue: document.getElementById("duelRoomValue"),
   duelMyScore: document.getElementById("duelMyScore"),
@@ -52,6 +59,27 @@ const dom = {
   duelInput: document.getElementById("duelInput"),
   duelSuggestions: document.getElementById("duelSuggestions"),
   duelSendBtn: document.getElementById("duelSendBtn"),
+  whoRoomValue: document.getElementById("whoRoomValue"),
+  whoPhase: document.getElementById("whoPhase"),
+  whoStatus: document.getElementById("whoStatus"),
+  whoPlayerName: document.getElementById("whoPlayerName"),
+  whoPreJoinBox: document.getElementById("whoPreJoinBox"),
+  whoLobbyBox: document.getElementById("whoLobbyBox"),
+  whoLobbyCode: document.getElementById("whoLobbyCode"),
+  whoPlayersList: document.getElementById("whoPlayersList"),
+  whoCreateBtn: document.getElementById("whoCreateBtn"),
+  whoRoomInput: document.getElementById("whoRoomInput"),
+  whoJoinBtn: document.getElementById("whoJoinBtn"),
+  whoStartBtn: document.getElementById("whoStartBtn"),
+  whoLeaveBtn: document.getElementById("whoLeaveBtn"),
+  whoBackBtn: document.getElementById("whoBackBtn"),
+  whoSelectWrap: document.getElementById("whoSelectWrap"),
+  whoSelectionInfo: document.getElementById("whoSelectionInfo"),
+  whoPickValidateBtn: document.getElementById("whoPickValidateBtn"),
+  whoGuessWrap: document.getElementById("whoGuessWrap"),
+  whoDoGuessBtn: document.getElementById("whoDoGuessBtn"),
+  whoGuessValidateBtn: document.getElementById("whoGuessValidateBtn"),
+  whoBoard: document.getElementById("whoBoard"),
 };
 
 const state = {
@@ -84,6 +112,22 @@ const state = {
     myScore: 0,
     opponentScore: 0,
   },
+  who: {
+    socket: null,
+    connected: false,
+    roomCode: "-",
+    playerId: null,
+    isHost: false,
+    players: [],
+    phase: "lobby",
+    board: [],
+    boardSignature: "",
+    selectedBy: {},
+    crossedIds: new Set(),
+    selectedPickId: null,
+    selectedGuessId: null,
+    guessArmed: false,
+  },
 };
 
 const generationById = [
@@ -108,6 +152,7 @@ function bindEvents() {
     state.selectedLanguage = dom.languageSelect.value;
     rerenderAfterLanguageSwitch();
     rerenderDuelSuggestions();
+    renderWhoBoard();
   });
 
   dom.startInfiniteBtn.addEventListener("click", async () => {
@@ -127,6 +172,7 @@ function bindEvents() {
     if (!dom.duelSuggestions.contains(event.target) && event.target !== dom.duelInput) {
       hideDuelSuggestions();
     }
+
   });
 
   dom.replayBtn.addEventListener("click", () => {
@@ -140,7 +186,14 @@ function bindEvents() {
     showMenu();
   });
 
+  dom.whoResultCloseBtn.addEventListener("click", closeWhoResultModal);
+  dom.whoResultMenuBtn.addEventListener("click", () => {
+    closeWhoResultModal();
+    showMenu();
+  });
+
   dom.duelBtn.addEventListener("click", startDuelMode);
+  dom.whoBtn.addEventListener("click", startWhoMode);
   dom.duelCreateBtn.addEventListener("click", onDuelCreateRoom);
   dom.duelJoinBtn.addEventListener("click", onDuelJoinRoom);
   dom.duelStartBtn.addEventListener("click", onDuelStart);
@@ -149,6 +202,15 @@ function bindEvents() {
   dom.duelSendBtn.addEventListener("click", onDuelSendGuess);
   dom.duelInput.addEventListener("input", onDuelInputChange);
   dom.duelInput.addEventListener("keydown", onDuelInputKeyDown);
+
+  dom.whoCreateBtn.addEventListener("click", onWhoCreateRoom);
+  dom.whoJoinBtn.addEventListener("click", onWhoJoinRoom);
+  dom.whoStartBtn.addEventListener("click", onWhoStart);
+  dom.whoLeaveBtn.addEventListener("click", onWhoLeaveRoom);
+  dom.whoBackBtn.addEventListener("click", onWhoBackToMenu);
+  dom.whoPickValidateBtn.addEventListener("click", onWhoSelectTarget);
+  dom.whoDoGuessBtn.addEventListener("click", onWhoDoGuessToggle);
+  dom.whoGuessValidateBtn.addEventListener("click", onWhoGuess);
 }
 
 async function startInfiniteMode() {
@@ -629,6 +691,7 @@ function showMenu() {
   dom.menuScreen.classList.add("active");
   dom.gameScreen.classList.add("hidden");
   dom.duelScreen.classList.add("hidden");
+  dom.whoScreen.classList.add("hidden");
 }
 
 function showGameScreen() {
@@ -637,6 +700,7 @@ function showGameScreen() {
   dom.menuScreen.classList.remove("active");
   dom.gameScreen.classList.remove("hidden");
   dom.duelScreen.classList.add("hidden");
+  dom.whoScreen.classList.add("hidden");
 }
 
 function showDuelScreen() {
@@ -645,10 +709,24 @@ function showDuelScreen() {
   dom.menuScreen.classList.remove("active");
   dom.gameScreen.classList.add("hidden");
   dom.duelScreen.classList.remove("hidden");
+  dom.whoScreen.classList.add("hidden");
+}
+
+function showWhoScreen() {
+  state.mode = "who";
+  dom.menuScreen.classList.add("hidden");
+  dom.menuScreen.classList.remove("active");
+  dom.gameScreen.classList.add("hidden");
+  dom.duelScreen.classList.add("hidden");
+  dom.whoScreen.classList.remove("hidden");
 }
 
 function closeModal() {
   dom.resultModal.classList.add("hidden");
+}
+
+function closeWhoResultModal() {
+  dom.whoResultModal.classList.add("hidden");
 }
 
 function onSkipRound() {
@@ -1081,6 +1159,437 @@ function rerenderDuelSuggestions() {
   if (dom.duelInput.value.trim()) {
     onDuelInputChange();
   }
+}
+
+function startWhoMode() {
+  stopTimer();
+  showWhoScreen();
+  resetWhoUi();
+  connectWhoSocket();
+}
+
+function resetWhoUi() {
+  dom.whoRoomValue.textContent = "-";
+  dom.whoLobbyCode.textContent = "-";
+  dom.whoPhase.textContent = "Lobby";
+  dom.whoStatus.textContent = "Connecte-toi a une room pour commencer.";
+  dom.whoPreJoinBox.classList.remove("hidden");
+  dom.whoLobbyBox.classList.add("hidden");
+  dom.whoSelectWrap.classList.add("hidden");
+  dom.whoGuessWrap.classList.add("hidden");
+  dom.whoPlayersList.innerHTML = "";
+  dom.whoBoard.innerHTML = "";
+  dom.whoStartBtn.disabled = true;
+  dom.whoPickValidateBtn.disabled = true;
+  dom.whoDoGuessBtn.disabled = true;
+  dom.whoDoGuessBtn.textContent = "Faire un guess";
+  dom.whoGuessValidateBtn.disabled = true;
+  dom.whoSelectionInfo.textContent = "Clique une carte pour la selectionner (contour vert), puis valide.";
+
+  state.who.selectedPickId = null;
+  state.who.selectedGuessId = null;
+  state.who.guessArmed = false;
+}
+
+function connectWhoSocket() {
+  if (state.who.socket) {
+    return;
+  }
+
+  if (typeof io !== "function") {
+    dom.whoStatus.textContent = "Socket.IO indisponible. Lance l app via le serveur Node.";
+    return;
+  }
+
+  const socket = io();
+  state.who.socket = socket;
+
+  socket.on("connect", () => {
+    state.who.connected = true;
+    dom.whoStatus.textContent = "Connecte au serveur Who.";
+  });
+
+  socket.on("disconnect", () => {
+    state.who.connected = false;
+    dom.whoStatus.textContent = "Connexion perdue. Reconnexion automatique...";
+    setWhoJoinedState(false);
+    dom.whoPickValidateBtn.disabled = true;
+    dom.whoDoGuessBtn.disabled = true;
+    dom.whoGuessValidateBtn.disabled = true;
+  });
+
+  socket.on("who:error", (payload) => {
+    dom.whoStatus.textContent = payload?.message || "Erreur mode Who.";
+  });
+
+  socket.on("who:roomCreated", (payload) => {
+    state.who.playerId = payload.playerId;
+    state.who.roomCode = payload.roomCode;
+    state.who.isHost = true;
+    dom.whoRoomValue.textContent = payload.roomCode;
+    dom.whoRoomInput.value = payload.roomCode;
+    dom.whoStatus.textContent = "Room creee. Attends un adversaire.";
+    setWhoJoinedState(true);
+    applyWhoState(payload.state);
+  });
+
+  socket.on("who:joined", (payload) => {
+    state.who.playerId = payload.playerId;
+    state.who.roomCode = payload.roomCode;
+    state.who.isHost = payload.isHost;
+    dom.whoRoomValue.textContent = payload.roomCode;
+    dom.whoStatus.textContent = payload.isHost ? "Room prete." : "Room rejointe.";
+    setWhoJoinedState(true);
+    applyWhoState(payload.state);
+  });
+
+  socket.on("who:state", (payload) => {
+    applyWhoState(payload.state);
+  });
+
+  socket.on("who:phase", (payload) => {
+    if (!payload) {
+      return;
+    }
+
+    dom.whoStatus.textContent = payload.message || dom.whoStatus.textContent;
+  });
+
+  socket.on("who:gameOver", (payload) => {
+    if (!payload) {
+      return;
+    }
+
+    const isWinner = payload.winnerId === state.who.playerId;
+    const order = Array.isArray(payload.playerOrder) ? payload.playerOrder : state.who.players.map((player) => player.id);
+    const player1Id = order[0] || null;
+    const player2Id = order[1] || null;
+    const secrets = payload.secretsByPlayer || {};
+    const player1Pokemon = secrets[player1Id] ? getDisplayName(secrets[player1Id]) : "?";
+    const player2Pokemon = secrets[player2Id] ? getDisplayName(secrets[player2Id]) : "?";
+    const winner = state.who.players.find((player) => player.id === payload.winnerId);
+    const winnerName = winner ? winner.name : "Un joueur";
+
+    dom.whoStatus.textContent = isWinner ? "Victoire" : "Defaite";
+    dom.whoResultTitle.textContent = isWinner ? "Victoire" : "Defaite";
+    dom.whoResultText.textContent = `Joueur 1 : ${player1Pokemon}\nJoueur 2 : ${player2Pokemon}\n${winnerName} a trouve le pokemon`;
+    dom.whoResultModal.classList.remove("hidden");
+    dom.whoDoGuessBtn.disabled = true;
+    dom.whoDoGuessBtn.textContent = "Faire un guess";
+    dom.whoGuessValidateBtn.disabled = true;
+    state.who.guessArmed = false;
+    state.who.selectedGuessId = null;
+    renderWhoBoard();
+  });
+}
+
+function getWhoPlayerName() {
+  const name = dom.whoPlayerName.value.trim();
+  return name ? name : "Joueur";
+}
+
+function onWhoCreateRoom() {
+  connectWhoSocket();
+  if (!state.who.connected || !state.who.socket) {
+    return;
+  }
+
+  state.who.socket.emit("who:createRoom", { playerName: getWhoPlayerName() });
+}
+
+function onWhoJoinRoom() {
+  connectWhoSocket();
+  if (!state.who.connected || !state.who.socket) {
+    return;
+  }
+
+  const roomCode = dom.whoRoomInput.value.trim().toUpperCase();
+  if (!roomCode) {
+    dom.whoStatus.textContent = "Entre un code room.";
+    return;
+  }
+
+  state.who.socket.emit("who:joinRoom", {
+    roomCode,
+    playerName: getWhoPlayerName(),
+  });
+}
+
+function onWhoStart() {
+  if (!state.who.socket) {
+    return;
+  }
+
+  state.who.socket.emit("who:start", {
+    roomCode: state.who.roomCode,
+  });
+}
+
+function onWhoBackToMenu() {
+  showMenu();
+}
+
+function onWhoLeaveRoom() {
+  if (state.who.socket) {
+    state.who.socket.disconnect();
+    state.who.socket = null;
+    state.who.connected = false;
+  }
+
+  state.who.roomCode = "-";
+  state.who.playerId = null;
+  state.who.players = [];
+  state.who.phase = "lobby";
+  state.who.board = [];
+  state.who.boardSignature = "";
+  state.who.selectedBy = {};
+  state.who.crossedIds.clear();
+  state.who.selectedPickId = null;
+  state.who.selectedGuessId = null;
+  state.who.guessArmed = false;
+  resetWhoUi();
+}
+
+function applyWhoState(roomState) {
+  if (!roomState) {
+    return;
+  }
+
+  state.who.players = roomState.players || [];
+  state.who.phase = roomState.phase || "lobby";
+  state.who.selectedBy = roomState.selectedBy || {};
+  state.who.roomCode = roomState.roomCode || state.who.roomCode;
+  dom.whoRoomValue.textContent = state.who.roomCode || "-";
+  dom.whoLobbyCode.textContent = state.who.roomCode || "-";
+
+  const nextBoard = Array.isArray(roomState.board) ? roomState.board : [];
+  const nextSignature = nextBoard.map((p) => p.id).join("|");
+  if (nextSignature !== state.who.boardSignature) {
+    state.who.crossedIds.clear();
+    state.who.selectedPickId = null;
+    state.who.selectedGuessId = null;
+    state.who.guessArmed = false;
+  }
+  state.who.boardSignature = nextSignature;
+  state.who.board = nextBoard;
+
+  const me = state.who.players.find((p) => p.id === state.who.playerId);
+  const twoPlayersReady = state.who.players.length === 2;
+
+  if (me) {
+    state.who.isHost = !!me.isHost;
+  }
+
+  const phaseLabel = state.who.phase === "pick" ? "Selection" : state.who.phase === "play" ? "Jeu" : state.who.phase === "ended" ? "Termine" : "Lobby";
+  dom.whoPhase.textContent = phaseLabel;
+
+  if (!twoPlayersReady) {
+    dom.whoStatus.textContent = "En attente du 2e joueur...";
+  } else if (state.who.phase === "lobby") {
+    dom.whoStatus.textContent = "2 joueurs connectes. Le host peut lancer.";
+  } else if (state.who.phase === "pick") {
+    const meSelected = Boolean(state.who.selectedBy[state.who.playerId]);
+    dom.whoStatus.textContent = meSelected
+      ? "Selection envoyee. Attente de l adversaire..."
+      : "Choissis ton pokemon secret";
+  } else if (state.who.phase === "play") {
+    dom.whoStatus.textContent = "Partie en cours. Barre les cartes. Active Faire un guess pour selectionner un Pokemon.";
+  }
+
+  dom.whoStartBtn.disabled = !(state.who.isHost && twoPlayersReady && state.who.phase === "lobby");
+  dom.whoSelectWrap.classList.toggle("hidden", state.who.phase !== "pick");
+  dom.whoGuessWrap.classList.toggle("hidden", state.who.phase !== "play");
+  dom.whoLobbyBox.classList.toggle("hidden", !(Boolean(state.who.playerId) && state.who.phase === "lobby"));
+
+  const meSelected = Boolean(state.who.selectedBy[state.who.playerId]);
+  const canSelect = state.who.phase === "pick" && !meSelected;
+  dom.whoPickValidateBtn.disabled = !canSelect || !state.who.selectedPickId;
+
+  const opponent = state.who.players.find((p) => p.id !== state.who.playerId);
+  const opponentSelected = opponent ? Boolean(state.who.selectedBy[opponent.id]) : false;
+  if (state.who.phase === "pick") {
+    dom.whoSelectionInfo.textContent = `Toi: ${meSelected ? "valide" : "pas encore"} | Adversaire: ${opponentSelected ? "valide" : "en attente"}`;
+  }
+
+  const canGuess = state.who.phase === "play";
+  dom.whoDoGuessBtn.disabled = !canGuess;
+  dom.whoDoGuessBtn.textContent = state.who.guessArmed ? "Annuler le guess" : "Faire un guess";
+  dom.whoGuessValidateBtn.disabled = !canGuess || !state.who.guessArmed || !state.who.selectedGuessId;
+
+  setWhoJoinedState(Boolean(state.who.playerId));
+  renderWhoPlayers();
+  renderWhoBoard();
+}
+
+function setWhoJoinedState(isJoined) {
+  dom.whoPreJoinBox.classList.toggle("hidden", isJoined);
+}
+
+function renderWhoPlayers() {
+  dom.whoPlayersList.innerHTML = "";
+
+  if (!state.who.players.length) {
+    const li = document.createElement("li");
+    li.className = "duel-player-row";
+    li.textContent = "Aucun joueur";
+    dom.whoPlayersList.appendChild(li);
+    return;
+  }
+
+  for (const player of state.who.players) {
+    const li = document.createElement("li");
+    li.className = "duel-player-row";
+
+    const name = document.createElement("span");
+    name.className = "duel-player-tag";
+    const isMe = player.id === state.who.playerId;
+    name.textContent = `${player.name}${isMe ? " (toi)" : ""}`;
+
+    const badge = document.createElement("span");
+    badge.className = "duel-player-badge";
+    if (player.isHost) {
+      badge.classList.add("duel-player-host");
+      badge.textContent = "Host";
+    } else {
+      badge.classList.add("duel-player-ready");
+      badge.textContent = "Pret";
+    }
+
+    li.appendChild(name);
+    li.appendChild(badge);
+    dom.whoPlayersList.appendChild(li);
+  }
+
+  if (state.who.players.length < 2) {
+    const waiting = document.createElement("li");
+    waiting.className = "duel-player-row";
+
+    const label = document.createElement("span");
+    label.className = "duel-player-tag";
+    label.textContent = "Slot 2";
+
+    const badge = document.createElement("span");
+    badge.className = "duel-player-badge duel-player-wait";
+    badge.textContent = "En attente";
+
+    waiting.appendChild(label);
+    waiting.appendChild(badge);
+    dom.whoPlayersList.appendChild(waiting);
+  }
+}
+
+function renderWhoBoard() {
+  dom.whoBoard.innerHTML = "";
+  if (!state.who.board.length) {
+    const p = document.createElement("p");
+    p.textContent = "La grille apparaitra au lancement de la partie.";
+    dom.whoBoard.appendChild(p);
+    return;
+  }
+
+  for (const pokemon of state.who.board) {
+    const cell = document.createElement("button");
+    cell.type = "button";
+    cell.className = "who-cell";
+    if (state.who.crossedIds.has(pokemon.id)) {
+      cell.classList.add("crossed");
+    }
+    if (state.who.selectedPickId === pokemon.id) {
+      cell.classList.add("pick-selected");
+    }
+    if (state.who.selectedGuessId === pokemon.id) {
+      cell.classList.add("guess-selected");
+    }
+
+    const img = document.createElement("img");
+    img.src = pokemon.artwork || "";
+    img.alt = getDisplayName(pokemon);
+
+    const name = document.createElement("p");
+    name.className = "who-cell-name";
+    name.textContent = getDisplayName(pokemon);
+
+    cell.appendChild(img);
+    cell.appendChild(name);
+    cell.addEventListener("click", () => {
+      if (state.who.phase === "pick") {
+        const meSelected = Boolean(state.who.selectedBy[state.who.playerId]);
+        if (meSelected) {
+          return;
+        }
+
+        state.who.selectedPickId = pokemon.id;
+        dom.whoPickValidateBtn.disabled = false;
+        renderWhoBoard();
+        return;
+      }
+
+      if (state.who.phase === "play") {
+        if (state.who.guessArmed) {
+          state.who.selectedGuessId = pokemon.id;
+          dom.whoGuessValidateBtn.disabled = false;
+        } else if (state.who.crossedIds.has(pokemon.id)) {
+          state.who.crossedIds.delete(pokemon.id);
+        } else {
+          state.who.crossedIds.add(pokemon.id);
+        }
+        renderWhoBoard();
+        return;
+      }
+
+      if (state.who.crossedIds.has(pokemon.id)) {
+        state.who.crossedIds.delete(pokemon.id);
+      } else {
+        state.who.crossedIds.add(pokemon.id);
+      }
+      renderWhoBoard();
+    });
+
+    dom.whoBoard.appendChild(cell);
+  }
+}
+
+function onWhoSelectTarget() {
+  if (!state.who.socket || !state.who.selectedPickId) {
+    return;
+  }
+
+  state.who.socket.emit("who:selectTarget", {
+    roomCode: state.who.roomCode,
+    pokemonId: state.who.selectedPickId,
+  });
+}
+
+function onWhoDoGuessToggle() {
+  if (state.who.phase !== "play") {
+    return;
+  }
+
+  state.who.guessArmed = !state.who.guessArmed;
+  if (!state.who.guessArmed) {
+    state.who.selectedGuessId = null;
+  }
+
+  dom.whoDoGuessBtn.textContent = state.who.guessArmed ? "Annuler le guess" : "Faire un guess";
+  dom.whoGuessValidateBtn.disabled = !state.who.guessArmed || !state.who.selectedGuessId;
+  renderWhoBoard();
+}
+
+function onWhoGuess() {
+  if (!state.who.socket || !state.who.guessArmed || !state.who.selectedGuessId) {
+    return;
+  }
+
+  state.who.socket.emit("who:guess", {
+    roomCode: state.who.roomCode,
+    pokemonId: state.who.selectedGuessId,
+  });
+
+  state.who.guessArmed = false;
+  state.who.selectedGuessId = null;
+  dom.whoDoGuessBtn.textContent = "Faire un guess";
+  dom.whoGuessValidateBtn.disabled = true;
+  renderWhoBoard();
 }
 
 function normalize(value) {

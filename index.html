@@ -27,6 +27,7 @@
       <div class="menu-actions">
         <button id="startInfiniteBtn" class="primary-btn">Mode infini</button>
         <button id="duelBtn" class="ghost-btn">Mode duel</button>
+        <button id="whoBtn" class="ghost-btn">Who's that Pokemon ?</button>
       </div>
       <p class="menu-note">Regles: 30 secondes au debut, +10 secondes par bonne reponse.</p>
     </section>
@@ -119,6 +120,63 @@
         </div>
       </section>
     </section>
+
+    <section id="whoScreen" class="screen hidden">
+      <header class="hud card">
+        <div><span class="label">Room</span><span id="whoRoomValue" class="value">-</span></div>
+        <div><span class="label">Phase</span><span id="whoPhase" class="value">Lobby</span></div>
+        <div><span class="label">Mode</span><span class="value">Who</span></div>
+      </header>
+
+      <section class="card challenge duel-layout">
+        <h2>Who's that Pokemon ?</h2>
+        <p id="whoStatus">Connecte-toi a une room pour commencer.</p>
+
+        <div id="whoPreJoinBox" class="duel-prejoin">
+          <div class="duel-setup">
+            <input id="whoPlayerName" type="text" maxlength="24" placeholder="Ton pseudo" />
+            <button id="whoCreateBtn" class="primary-btn">Creer une room</button>
+          </div>
+
+          <div class="duel-setup">
+            <input id="whoRoomInput" type="text" maxlength="6" placeholder="Code room" />
+            <button id="whoJoinBtn" class="ghost-btn">Rejoindre</button>
+            <button id="whoBackBtn" class="ghost-btn">Menu</button>
+          </div>
+        </div>
+
+        <div id="whoLobbyBox" class="duel-lobby card hidden">
+          <h3>Lobby</h3>
+          <p class="duel-lobby-room">Code: <strong id="whoLobbyCode">-</strong></p>
+          <ul id="whoPlayersList" class="duel-players-list"></ul>
+          <div class="duel-setup">
+            <button id="whoStartBtn" class="primary-btn" disabled>Lancer partie</button>
+            <button id="whoLeaveBtn" class="ghost-btn">Quitter la room</button>
+          </div>
+        </div>
+
+        <div id="whoSelectWrap" class="card duel-round hidden">
+          <h3>Choissis ton pokemon secret</h3>
+          <p id="whoSelectionInfo">Clique une carte pour la selectionner (contour vert), puis valide.</p>
+          <div class="input-actions">
+            <button id="whoPickValidateBtn" class="primary-btn" disabled>Valider</button>
+          </div>
+        </div>
+
+        <div id="whoGuessWrap" class="card duel-round hidden">
+          <h3>Guess final</h3>
+          <div class="input-actions">
+            <button id="whoDoGuessBtn" class="ghost-btn" disabled>Faire un guess</button>
+            <button id="whoGuessValidateBtn" class="primary-btn" disabled>Valider</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card who-grid-wrap">
+        <p class="who-grid-note">Clique une carte pour l'éliminer.</p>
+        <div id="whoBoard" class="who-grid"></div>
+      </section>
+    </section>
   </main>
 
   <div id="resultModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
@@ -129,6 +187,17 @@
       <div class="menu-actions">
         <button id="replayBtn" class="primary-btn">Rejouer</button>
         <button id="backMenuBtn" class="ghost-btn">Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="whoResultModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="whoResultTitle">
+    <div class="modal-card">
+      <h2 id="whoResultTitle">Resultat duel Who</h2>
+      <p id="whoResultText" class="who-result-text"></p>
+      <div class="menu-actions">
+        <button id="whoResultCloseBtn" class="primary-btn">Fermer</button>
+        <button id="whoResultMenuBtn" class="ghost-btn">Menu</button>
       </div>
     </div>
   </div>
